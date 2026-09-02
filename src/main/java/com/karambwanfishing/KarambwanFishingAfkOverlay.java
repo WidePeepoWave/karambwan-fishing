@@ -19,6 +19,7 @@ import net.runelite.client.ui.overlay.OverlayPriority;
 public class KarambwanFishingAfkOverlay extends Overlay {
 
     private static final double SECONDS_PER_GAME_TICK = 0.6;
+    private static final int LINE_HEIGHT = 28;
 
     private final Client client;
     private final KarambwanFishingPlugin plugin;
@@ -54,7 +55,6 @@ public class KarambwanFishingAfkOverlay extends Overlay {
         }
 
         String mainText = getMainText();
-        String tierText = getSlotsTex();
 
         Font originalFont = graphics.getFont();
 
@@ -62,7 +62,18 @@ public class KarambwanFishingAfkOverlay extends Overlay {
         drawCenteredText(graphics, mainText, canvasSize.width, canvasSize.height / 2 - 6);
 
         graphics.setFont(new Font("SansSerif", Font.BOLD, 22));
-        drawCenteredText(graphics, tierText, canvasSize.width, canvasSize.height / 2 + 34);
+        int y = canvasSize.height / 2 + 34;
+
+        for (String line : new String[]{getBarrelText(), getSlotsTex()})
+        {
+            if (line.isEmpty())
+            {
+                continue;
+            }
+
+            drawCenteredText(graphics, line, canvasSize.width, y);
+            y += LINE_HEIGHT;
+        }
 
         graphics.setFont(originalFont);
         return null;
@@ -131,6 +142,18 @@ public class KarambwanFishingAfkOverlay extends Overlay {
         }
 
         return "Fishing :)";
+    }
+
+    private String getBarrelText()
+    {
+        KarambwanBarrel barrel = plugin.getBarrel();
+
+        if (!barrel.isPresent())
+        {
+            return "";
+        }
+
+        return "Barrel slots left: " + (barrel.isUnknown() ? "?" : Integer.toString(barrel.getSlotsLeft()));
     }
 
     private String getSlotsTex()
