@@ -5,6 +5,9 @@ import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
+import net.runelite.api.gameval.InterfaceID;
+import net.runelite.api.widgets.Widget;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.input.MouseAdapter;
@@ -16,7 +19,7 @@ import net.runelite.client.ui.overlay.OverlayManager;
 
 import java.awt.event.MouseEvent;
 
-@Slf4j
+
 @PluginDescriptor(
 	name = "Karambwan AFK Helper"
 )
@@ -36,6 +39,12 @@ public class KarambwanFishingPlugin extends Plugin
 
 	@Inject
 	private KarambwanFishingAfkOverlay overlay;
+
+	@Inject
+	private ClientThread clientThread;
+
+	@Inject
+	private KarambwanBarrel barrel;
 
 	private static final int CLIENT_TICKS_PER_GAME_TICK = 30;
 	private static final int KARAM_FISHING_SPOT_NPC_ID = 4712;
@@ -70,6 +79,17 @@ public class KarambwanFishingPlugin extends Plugin
 
 		supressedByNonFishingClick = false;
 		resetFishing();
+
+		// seed the barrel in case the plugin was enabled while already logged in
+		barrel.reset();
+		clientThread.invokeLater(() ->
+		{
+			ItemContainer inventory = client.getItemContainer(InventoryID.INVENTORY);
+			if (inventory != null)
+			{
+				barrel.onInventoryChanged(inventory);
+			}
+		});
 	}
 
 	@Override
@@ -79,6 +99,7 @@ public class KarambwanFishingPlugin extends Plugin
 
 		supressedByNonFishingClick = false;
 		resetFishing();
+		barrel.reset();
 	}
 
 	@Provides
@@ -93,7 +114,51 @@ public class KarambwanFishingPlugin extends Plugin
 		ItemContainer inventory = client.getItemContainer(InventoryID.INVENTORY);
 		if (inventory != null) {
 			inventorySlotsLeft = 28 - inventory.count();
+			barrel.onInventoryChanged(inventory);
 		}
+	}
+
+	@Subscribe
+	public void onChatMessage(ChatMessage event)
+	{
+		barrel.onChatMessage(event);
+	}
+
+	@Subscribe
+	public void onMenuOptionClicked(MenuOptionClicked event)
+	{
+		switch (event.getMenuAction())
+		{
+			case CC_OP:
+			case CC_OP_LOW_PRIORITY:
+				Widget widget = event.getWidget();
+				if (widget != null)
+				{
+					barrel.onMenuOptionClicked(widget.getItemId(), event.getMenuOption());
+				}
+				break;
+			default:
+				break;
+		}
+	}
+
+	@Subscribe
+	public void onWidgetLoaded(WidgetLoaded event)
+	{
+		if (event.getGroupId() != InterfaceID.OBJECTBOX || !barrel.wasCheckClicked())
+		{
+			return;
+		}
+
+		// the text is not populated yet when the interface loads
+		clientThread.invokeLater(() ->
+		{
+			Widget widget = client.getWidget(InterfaceID.Objectbox.TEXT);
+			if (widget != null)
+			{
+				barrel.applyCheckText(widget.getText());
+			}
+		});
 	}
 
 	@Subscribe
@@ -137,6 +202,8 @@ public class KarambwanFishingPlugin extends Plugin
 	@Subscribe
 	public void onGameTick(GameTick event)
 	{
+		barrel.onGameTick();
+
 		Player player = client.getLocalPlayer();
 
 		if (player == null)
@@ -276,6 +343,10 @@ public class KarambwanFishingPlugin extends Plugin
 
 	int getInventorySlotsLeft() {
 		return inventorySlotsLeft;
+	}
+
+	KarambwanBarrel getBarrel() {
+		return barrel;
 	}
 
 	int getEstimatedFishingTicks() {
