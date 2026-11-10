@@ -91,18 +91,6 @@ public interface KarambwanFishingConfig extends Config
 		return false;
 	}
 
-	@ConfigItem(
-			position = 9,
-			keyName = "hideOnNonFishingClick",
-			name = "Hide on non-fishing click",
-			description = "Hide the overlay when left-clicking anything other than the fishing spot. Click the fishing spot again to show it",
-			section = "timerSection"
-	)
-	default boolean hideOnNonFishingClick()
-	{
-		return false;
-	}
-
 	@Range(
 			min = 1,
 			max = 100
@@ -117,5 +105,17 @@ public interface KarambwanFishingConfig extends Config
 	default int mouseIdleGameTicks()
 	{
 		return 5;
+	}
+
+	@ConfigItem(
+			position = 9,
+			keyName = "hideOnNonFishingClick",
+			name = "Hide on non-fishing click",
+			description = "Hide the overlay when left-clicking anything other than the fishing spot. Click the fishing spot again to show it",
+			section = "timerSection"
+	)
+	default boolean hideOnNonFishingClick()
+	{
+		return false;
 	}
 }

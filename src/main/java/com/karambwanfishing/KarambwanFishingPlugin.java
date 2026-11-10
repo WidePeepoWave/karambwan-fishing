@@ -39,10 +39,12 @@ public class KarambwanFishingPlugin extends Plugin
 
 	private static final int CLIENT_TICKS_PER_GAME_TICK = 30;
 	private static final int KARAM_FISHING_SPOT_NPC_ID = 4712;
+	private static final int COX_FISHING_SPOT_NPC_ID = 7323;
 
 	private NPC karamNpc;
+	private NPC coxNpc;
 
-	private boolean currentlyFishingKarams = false;
+	private boolean currentlyFishing = false;
 	private boolean supressedByNonFishingClick = false;
 	private int estimatedFishingTicks = -1;
 	private int inventorySlotsLeft = -1;
@@ -116,12 +118,15 @@ public class KarambwanFishingPlugin extends Plugin
 	{
 		NPC npc = event.getNpc();
 
-		if (npc.getId() != KARAM_FISHING_SPOT_NPC_ID)
+		if (npc.getId() == KARAM_FISHING_SPOT_NPC_ID)
 		{
-			return;
+			karamNpc = npc;
 		}
 
-		karamNpc = npc;
+		if (npc.getId() == COX_FISHING_SPOT_NPC_ID){
+			coxNpc = npc;
+		}
+
 	}
 
 	@Subscribe
@@ -130,6 +135,11 @@ public class KarambwanFishingPlugin extends Plugin
 		if (event.getNpc().equals(karamNpc))
 		{
 			karamNpc = null;
+			estimatedFishingTicks = -1;
+		}
+
+		if (event.getNpc().equals(coxNpc)){
+			coxNpc = null;
 			estimatedFishingTicks = -1;
 		}
 	}
@@ -141,25 +151,25 @@ public class KarambwanFishingPlugin extends Plugin
 
 		if (player == null)
 		{
-			currentlyFishingKarams = false;
+			currentlyFishing = false;
 			supressedByNonFishingClick = false;
 			return;
 		}
 
-		if (karamNpc == null)
+		if (karamNpc == null && coxNpc == null)
 		{
-			scanForKaramFishingNpc();
+			scanForFishingNpcs();
 		}
 
-		if (karamNpc == null)
+		if (karamNpc == null && coxNpc == null)
 		{
-			currentlyFishingKarams = false;
+			currentlyFishing = false;
 			supressedByNonFishingClick = false;
 			return;
 		}
 
 		if (inventorySlotsLeft == 0) {
-			currentlyFishingKarams = false;
+			currentlyFishing = false;
 			supressedByNonFishingClick = false;
 			return;
 		}
@@ -171,7 +181,7 @@ public class KarambwanFishingPlugin extends Plugin
 			supressedByNonFishingClick = false;
 		}
 
-		currentlyFishingKarams = fishingNow;
+		currentlyFishing = fishingNow;
 	}
 
 	/*private void processMenuEntries() {
@@ -232,19 +242,23 @@ public class KarambwanFishingPlugin extends Plugin
 	private boolean isFishing(Player player) {
 		Actor actor = client.getLocalPlayer().getInteracting();
 		if (actor instanceof NPC) {
-			return ((NPC) actor).getId() == KARAM_FISHING_SPOT_NPC_ID;
+			return ((NPC) actor).getId() == KARAM_FISHING_SPOT_NPC_ID || ((NPC) actor).getId() == COX_FISHING_SPOT_NPC_ID;
 		}
 		return false;
 	}
 
-	private void scanForKaramFishingNpc()
+	private void scanForFishingNpcs()
 	{
 		for (NPC npc : client.getNpcs())
 		{
 			if (npc.getId() == KARAM_FISHING_SPOT_NPC_ID)
 			{
 				karamNpc = npc;
-				return;
+			}
+
+			if (npc.getId() == COX_FISHING_SPOT_NPC_ID)
+			{
+				coxNpc = npc;
 			}
 		}
 	}
@@ -266,7 +280,7 @@ public class KarambwanFishingPlugin extends Plugin
 			return false;
 		}
 
-		if (!currentlyFishingKarams)
+		if (!currentlyFishing)
 		{
 			return false;
 		}
@@ -302,7 +316,7 @@ public class KarambwanFishingPlugin extends Plugin
 			return;
 		}
 
-		if (currentlyFishingKarams)
+		if (currentlyFishing)
 		{
 			supressedByNonFishingClick = true;
 		}
@@ -382,10 +396,11 @@ public class KarambwanFishingPlugin extends Plugin
 
 	private void resetFishing()
 	{
-		currentlyFishingKarams = false;
+		currentlyFishing = false;
 		supressedByNonFishingClick = false;
 		estimatedFishingTicks = -1;
 		karamNpc = null;
+		coxNpc = null;
 	}
 
 }
